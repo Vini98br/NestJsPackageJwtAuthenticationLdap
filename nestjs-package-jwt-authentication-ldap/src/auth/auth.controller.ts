@@ -91,9 +91,9 @@ export class AuthController {
     @Request() req,
     @Response() res,
   ): Promise<LoginResponseDto> {
-    const username: string = await this.consumerAppService.singleSignOn(req,res);
-    req.user=(await this.ldapService.getUserRecord(username)).user;
-    return this.login(req,res);
+    const username: string = await this.consumerAppService.singleSignOn(req, res);
+    req.user = (await this.ldapService.getUserRecord(username)).user;
+    return this.login(req, res);
   }
 
   /**
@@ -113,6 +113,7 @@ export class AuthController {
     const token: string = (req.cookies && req.cookies.jid) ? req.cookies.jid : null;
     // check if jid token is present
     if (!token) {
+      Logger.error({ error: 'not token' }, AuthController.name);
       return invalidPayload();
     }
 
@@ -124,7 +125,7 @@ export class AuthController {
           : this.config.auth.refreshTokenJwtSecret
       });
     } catch (error) {
-      Logger.error(error, AuthController.name);
+      Logger.error({ error, id: 'verify' }, AuthController.name);
       return invalidPayload();
     }
 
@@ -132,6 +133,7 @@ export class AuthController {
     const { user }: SearchUserRecordResponseDto = await this.ldapService.getUserRecord(payload.username);
     // check jid token
     if (!user) {
+      Logger.error({ error: 'not user' }, AuthController.name);
       return invalidPayload();
     }
     // get licenseActivated to pass to getRolesAndPermissionsFromMemberOf
@@ -148,6 +150,7 @@ export class AuthController {
     // check inMemory tokenVersion, must be equal to inMemory else is considered invalid token
     const tokenVersion: number = this.authService.usersStore.getTokenVersion(user.cn);
     if (tokenVersion !== payload.tokenVersion) {
+      Logger.error({ error: 'token version' }, AuthController.name);
       return invalidPayload();
     }
 
